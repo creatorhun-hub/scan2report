@@ -72,6 +72,15 @@ python main.py
 
 ---
 
+## 🎯 Who is this for?
+
+- Cybersecurity students  
+- Beginner pentesters  
+- Bug bounty hunters  
+- Developers learning security  
+
+---
+
 ## ⚠️ Disclaimer
 
 This tool is for **educational and authorized security testing only**.
