@@ -1,0 +1,403 @@
+{% extends "base.html" %}
+{% block title %}scan2report — Results{% endblock %}
+
+{% macro risk_badge(level) %}
+  {% set lc = level | lower %}
+  <span class="badge badge-{{ lc }} badge-lg">
+    {% if lc in ('critical','high') %}🔴{% elif lc == 'medium' %}🟡{% elif lc == 'low' %}🟢{% else %}🔵{% endif %}
+    {{ level }}
+  </span>
+{% endmacro %}
+
+{% block content %}
+
+{# ── Page header ──────────────────────────────────────────────── #}
+<div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:20px;">
+  <div>
+    <div class="page-title">
+      {% if analysis.tool == 'Nmap' %}🔍{% elif analysis.tool == 'Nikto' %}🌐{% else %}💉{% endif %}
+      {{ analysis.tool }} Scan Results
+    </div>
+    <div class="page-subtitle">{{ filename }}</div>
+  </div>
+  {% if analysis.tool == 'Nmap' %}
+    {% set risky = analysis.risky_ports | length %}
+    {{ risk_badge('HIGH' if risky >= 3 else ('MEDIUM' if risky >= 1 else 'LOW')) }}
+  {% elif analysis.tool == 'Nikto' %}
+    {{ risk_badge('HIGH' if analysis.high_count > 0 else ('MEDIUM' if analysis.medium_count > 0 else 'LOW')) }}
+  {% elif analysis.tool == 'SQLmap' %}
+    {{ risk_badge('CRITICAL' if analysis.injections else 'HIGH') }}
+  {% endif %}
+</div>
+
+{# ── Overview ─────────────────────────────────────────────────── #}
+<div class="overview-strip">
+  <span class="ov-icon">📋</span>
+  <span class="ov-text">{{ analysis.overview }}</span>
+</div>
+
+{# ══════════════════ NMAP ══════════════════ #}
+{% if analysis.tool == 'Nmap' %}
+
+  <div class="stats-row">
+    <div class="stat-box stat-muted">
+      <div class="val">{{ analysis.findings | length }}</div>
+      <div class="lbl">Hosts Scanned</div>
+    </div>
+    <div class="stat-box {% if analysis.risky_ports | length >= 3 %}stat-red{% elif analysis.risky_ports | length >= 1 %}stat-yellow{% else %}stat-muted{% endif %}">
+      <div class="val">{{ analysis.risky_ports | length }}</div>
+      <div class="lbl">Risky Services</div>
+    </div>
+    <div class="stat-box stat-muted">
+      <div class="val">{{ analysis.findings | sum(attribute='open_ports') }}</div>
+      <div class="lbl">Open Ports</div>
+    </div>
+  </div>
+
+  {% for host in analysis.findings %}
+  <div class="host-card">
+    <div class="host-header">
+      <span style="font-size:18px;">{% if host.status == 'up' %}🟢{% else %}🔴{% endif %}</span>
+      <div>
+        <div class="host-ip">{{ host.host }}</div>
+        <div class="host-meta">
+          {% if host.os %}{{ host.os }} &nbsp;·&nbsp;{% endif %}
+          {% if host.mac_address %}MAC: {{ host.mac_address }}{% if host.mac_vendor %} ({{ host.mac_vendor }}){% endif %} &nbsp;·&nbsp;{% endif %}
+          {{ host.open_ports }} open port(s)
+        </div>
+      </div>
+    </div>
+    {% if host.ports %}
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Port</th><th>Protocol</th><th>Service</th><th>Version</th><th>Risk</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in host.ports %}
+          <tr>
+            <td class="mono">{{ p.port }}</td>
+            <td>{{ p.protocol }}</td>
+            <td>{{ p.service }}</td>
+            <td class="mono" style="color:var(--muted)">{{ p.version or '—' }}</td>
+            <td>
+              {% if p.risk_note %}
+                <span style="color:var(--red); font-size:12px;">⚠️ {{ p.risk_note }}</span>
+              {% else %}
+                <span style="color:var(--green); font-size:12px;">✅ OK</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+    {% if host.scripts %}
+    <div style="padding:12px 16px; border-top:1px solid var(--border2); background:var(--surface2);">
+      <div style="font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">NSE Scripts</div>
+      {% for s in host.scripts %}
+      <div style="font-size:12px; margin-bottom:6px;">
+        <span style="color:var(--accent); font-family:monospace;">{{ s.name }}</span>
+        <span style="color:var(--muted); margin-left:8px;">{{ s.output[:120] }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+{# ══════════════════ NIKTO ══════════════════ #}
+{% elif analysis.tool == 'Nikto' %}
+
+  {% set tgt = analysis.target %}
+  <div class="stats-row">
+    <div class="stat-box stat-red">
+      <div class="val">{{ analysis.high_count }}</div>
+      <div class="lbl">High</div>
+    </div>
+    <div class="stat-box stat-yellow">
+      <div class="val">{{ analysis.medium_count }}</div>
+      <div class="lbl">Medium</div>
+    </div>
+    <div class="stat-box stat-blue">
+      <div class="val">{{ analysis.info_count }}</div>
+      <div class="lbl">Info</div>
+    </div>
+    <div class="stat-box stat-muted">
+      <div class="val">{{ analysis.findings | length }}</div>
+      <div class="lbl">Total</div>
+    </div>
+  </div>
+
+  {% if tgt %}
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-header"><span class="card-title">Target</span></div>
+    <div class="card-body" style="display:flex; gap:24px; flex-wrap:wrap; font-size:13px;">
+      <div><span style="color:var(--muted)">Host</span><br><strong>{{ tgt.hostname or tgt.ip or '—' }}:{{ tgt.port or '—' }}</strong></div>
+      <div><span style="color:var(--muted)">Server</span><br><strong>{{ tgt.server or '—' }}</strong></div>
+      {% if analysis.cve_refs %}
+      <div><span style="color:var(--muted)">CVEs Referenced</span><br>
+        {% for c in analysis.cve_refs %}<span class="code-pill" style="color:var(--red);">{{ c }}</span> {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% for severity in ['HIGH', 'MEDIUM', 'INFO'] %}
+    {% set group = analysis.findings | selectattr('severity', 'equalto', severity) | list %}
+    {% if group %}
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">{{ severity }} Findings</span>
+        <span class="badge badge-{{ severity | lower }}">{{ group | length }}</span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        {% for f in group %}
+        <div class="finding-item" style="padding:12px 18px;">
+          <span class="badge badge-{{ severity | lower }}" style="flex-shrink:0; margin-top:1px;">{{ severity }}</span>
+          <div>
+            <div class="finding-desc">{{ f.description }}</div>
+            <div class="finding-meta">
+              {% if f.url_path %}<span class="code-pill">{{ f.url_path }}</span>&nbsp;{% endif %}
+              {% if f.osvdb_id %}<span class="code-pill">OSVDB-{{ f.osvdb_id }}</span>&nbsp;{% endif %}
+              {% if f.cve %}<span class="code-pill" style="color:var(--red);">{{ f.cve }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  {% endfor %}
+
+{# ══════════════════ SQLMAP ══════════════════ #}
+{% elif analysis.tool == 'SQLmap' %}
+
+  {% set tgt = analysis.target %}
+  {% set waf = analysis.waf %}
+
+  {% if waf and waf.detected %}
+  <div class="alert alert-info">
+    🛡 WAF/IPS detected: <strong>{{ waf.name or 'Unknown' }}</strong> — SQLmap may have bypassed it. Validate WAF coverage.
+  </div>
+  {% endif %}
+
+  <div class="stats-row">
+    <div class="stat-box stat-red">
+      <div class="val">{{ analysis.injections | length }}</div>
+      <div class="lbl">Injections</div>
+    </div>
+    <div class="stat-box stat-yellow">
+      <div class="val">{{ analysis.databases | length }}</div>
+      <div class="lbl">Databases</div>
+    </div>
+    <div class="stat-box stat-muted">
+      <div class="val">{{ analysis.tables.values() | map('length') | sum }}</div>
+      <div class="lbl">Tables</div>
+    </div>
+    {% set total_rows = analysis.dump.values() | map(attribute='rows') | map('length') | sum if analysis.dump else 0 %}
+    <div class="stat-box {% if total_rows > 0 %}stat-red{% else %}stat-muted{% endif %}">
+      <div class="val">{{ total_rows }}</div>
+      <div class="lbl">Rows Dumped</div>
+    </div>
+  </div>
+
+  {% if tgt %}
+  <div class="card">
+    <div class="card-header"><span class="card-title">Target</span></div>
+    <div class="card-body" style="display:flex; gap:24px; flex-wrap:wrap; font-size:13px;">
+      <div><span style="color:var(--muted)">URL</span><br><span class="mono" style="color:var(--accent)">{{ tgt.url or '—' }}</span></div>
+      <div><span style="color:var(--muted)">DBMS</span><br><strong>{{ tgt.dbms or '—' }}</strong></div>
+      <div><span style="color:var(--muted)">OS</span><br><strong>{{ tgt.web_os or '—' }}</strong></div>
+      <div><span style="color:var(--muted)">Tech</span><br><strong>{{ tgt.web_tech or '—' }}</strong></div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if analysis.injections %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Injection Points</span>
+      <span class="badge badge-critical">CRITICAL</span>
+    </div>
+    <div class="card-body">
+      {% for inj in analysis.injections %}
+      <div class="inj-block">
+        <h4>Parameter: <span class="mono">{{ inj.parameter }}</span> ({{ inj.method }})</h4>
+        {% if inj.injection_types %}
+        <div class="inj-types">
+          {% for t in inj.injection_types %}
+          <span class="type-tag">{{ t }}</span>
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% if inj.payloads %}
+        <div class="payload-block">
+          {% for payload in inj.payloads[:3] %}{{ payload }}<br>{% endfor %}
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% if analysis.databases %}
+  <div class="card">
+    <div class="card-header"><span class="card-title">Database Enumeration</span></div>
+    <div class="card-body">
+      <div class="db-tree">
+        {% for db in analysis.databases %}
+        <div class="db-name">🗄 {{ db }}</div>
+        {% for tbl in analysis.tables.get(db, []) %}
+        <div class="table-name">{{ tbl }}</div>
+        {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if analysis.dump %}
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Extracted Data</span>
+      <span class="badge badge-critical">⚠️ SENSITIVE</span>
+    </div>
+    {% for tbl, tbl_data in analysis.dump.items() %}
+    <div class="card-body">
+      <div style="font-weight:600; font-size:12px; color:var(--red); margin-bottom:10px; font-family:monospace;">{{ tbl }}</div>
+      {% if tbl_data.columns and tbl_data.rows %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>{% for col in tbl_data.columns %}<th>{{ col }}</th>{% endfor %}</tr>
+          </thead>
+          <tbody>
+            {% for row in tbl_data.rows %}
+            <tr>{% for col in tbl_data.columns %}<td class="mono">{{ row.get(col, '—') }}</td>{% endfor %}</tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+{% endif %}
+{# ══════════════════ END TOOL SECTIONS ══════════════════ #}
+
+{# ── Recommendations ────────────────────────────────────────────── #}
+<div class="card">
+  <div class="card-header"><span class="card-title">Recommendations</span></div>
+  <div class="card-body">
+    <ul class="rec-list">
+      {% for rec in analysis.recommendations %}
+      <li>
+        <span class="rec-num">{{ loop.index }}</span>
+        <span>{{ rec }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+
+{# ── Action bar ─────────────────────────────────────────────────── #}
+<div class="action-bar">
+  <span class="action-bar-label">Generate a detailed report or run an AI-powered analysis.</span>
+  {% if has_api_key %}
+  <button class="btn btn-ai" id="ai-btn" onclick="runAI()">
+    <span id="ai-btn-icon">✨</span> Analyze with AI
+  </button>
+  {% else %}
+  <button class="btn btn-ai" disabled title="REPLICATE_API_TOKEN not configured">✨ Analyze with AI</button>
+  {% endif %}
+  <a class="btn btn-green" href="{{ url_for('report') }}">📄 View Markdown Report</a>
+</div>
+
+{# ── AI panel ───────────────────────────────────────────────────── #}
+<div id="ai-panel" {% if ai %}class="visible"{% endif %}>
+  <div class="ai-header">
+    <span style="font-size:18px;">✨</span>
+    <h3>AI-Powered Analysis</h3>
+    {% if ai %}
+    <span class="badge badge-{{ ai.risk_level | lower }}" style="margin-left:auto;">{{ ai.risk_level }}</span>
+    {% endif %}
+  </div>
+  <div class="ai-body">
+    <p class="ai-summary" id="ai-summary">
+      {% if ai %}{{ ai.vulnerability_summary }}{% endif %}
+    </p>
+    {% if ai and ai.recommended_fixes %}
+    <ul class="ai-fixes" id="ai-fixes">
+      {% for fix in ai.recommended_fixes %}
+      <li><span class="ai-fix-icon">▸</span> {{ fix }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <ul class="ai-fixes" id="ai-fixes" style="display:none;"></ul>
+    {% endif %}
+  </div>
+  <div id="ai-error"></div>
+</div>
+
+<script>
+async function runAI() {
+  const btn      = document.getElementById('ai-btn');
+  const panel    = document.getElementById('ai-panel');
+  const summary  = document.getElementById('ai-summary');
+  const fixesList= document.getElementById('ai-fixes');
+  const errDiv   = document.getElementById('ai-error');
+  const icon     = document.getElementById('ai-btn-icon');
+
+  btn.disabled = true;
+  icon.outerHTML = '<span class="spinner" id="ai-btn-icon"></span>';
+  errDiv.style.display = 'none';
+  panel.classList.add('visible');
+  summary.textContent = 'Sending scan data to AI model — this may take 20-30 seconds…';
+
+  try {
+    const res = await fetch('{{ url_for("ai_analyze") }}', { method: 'POST' });
+    const data = await res.json();
+
+    if (data.error) {
+      summary.textContent = '';
+      errDiv.textContent = '⚠️ ' + data.error;
+      errDiv.style.display = 'block';
+    } else {
+      summary.textContent = data.vulnerability_summary || '';
+
+      fixesList.innerHTML = '';
+      (data.recommended_fixes || []).forEach(fix => {
+        const li = document.createElement('li');
+        li.innerHTML = '<span class="ai-fix-icon">▸</span> ' + fix;
+        fixesList.appendChild(li);
+      });
+      fixesList.style.display = 'block';
+
+      // Update badge in AI header
+      const hdr = document.querySelector('.ai-header');
+      const existing = hdr.querySelector('.badge');
+      const lvl = data.risk_level || 'UNKNOWN';
+      const badgeHtml = `<span class="badge badge-${lvl.toLowerCase()}" style="margin-left:auto;">${lvl}</span>`;
+      if (existing) existing.outerHTML = badgeHtml;
+      else hdr.insertAdjacentHTML('beforeend', badgeHtml);
+    }
+  } catch (err) {
+    errDiv.textContent = '⚠️ Network error: ' + err.message;
+    errDiv.style.display = 'block';
+  }
+
+  btn.disabled = false;
+  const spinner = document.getElementById('ai-btn-icon');
+  if (spinner) spinner.outerHTML = '<span id="ai-btn-icon">✨</span>';
+}
+</script>
+
+{% endblock %}

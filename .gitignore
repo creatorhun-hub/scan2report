@@ -1,0 +1,53 @@
+# ── Output / generated files ─────────────────────────────────────────────────
+results/
+*.md.bak
+
+# ── Environment / secrets ────────────────────────────────────────────────────
+.env
+*.env
+.env.local
+.env.production
+
+# ── Python ───────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+pip-wheel-metadata/
+*.whl
+
+# ── Virtual environments ─────────────────────────────────────────────────────
+venv/
+.venv/
+env/
+ENV/
+.virtualenv/
+
+# ── IDE / editor ─────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ── Flask ────────────────────────────────────────────────────────────────────
+instance/
+.webassets-cache
+flask_session/
+
+# ── Temporary session data ───────────────────────────────────────────────────
+/tmp/s2r_*.json
+/tmp/s2r_*.md
+
+# ── Test artifacts ───────────────────────────────────────────────────────────
+.pytest_cache/
+.coverage
+htmlcov/

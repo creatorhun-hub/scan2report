@@ -1,0 +1,12 @@
+# scan2report — Python dependencies
+# Install with: pip install -r requirements.txt
+
+# Web framework (for app.py / Flask web interface)
+flask>=2.3.0
+
+# Markdown rendering (server-side conversion for the report view)
+markdown>=3.4.0
+
+# AI-powered analysis via Replicate (optional — only needed for AI features)
+# Sign up at https://replicate.com to get an API token
+replicate>=0.25.0

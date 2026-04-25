@@ -1,0 +1,34 @@
+# Nmap 7.94 scan initiated Mon Apr 25 10:00:00 2026 as: nmap -sV -O --script http-title,ssl-cert,vuln 192.168.1.0/24
+Nmap scan report for 192.168.1.1
+Host is up (0.0012s latency).
+MAC Address: 00:1A:2B:3C:4D:5E (Cisco Systems)
+Not shown: 995 closed tcp ports (reset)
+PORT     STATE SERVICE   VERSION
+21/tcp   open  ftp       vsftpd 3.0.3
+22/tcp   open  ssh       OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0)
+80/tcp   open  http      Apache httpd 2.4.52 ((Ubuntu))
+|_ http-title: Apache2 Ubuntu Default Page: It works
+443/tcp  open  https     Apache httpd 2.4.52 ((Ubuntu))
+| ssl-cert: Subject: commonName=example.local/organizationName=Example Corp
+| Not valid before: 2025-01-01T00:00:00
+|_ Not valid after: 2026-01-01T00:00:00
+3306/tcp open  mysql     MySQL 8.0.32-0ubuntu0.22.04.2
+OS details: Linux 5.15 - 5.19
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
+
+Nmap scan report for 192.168.1.2
+Host is up (0.0034s latency).
+MAC Address: DE:AD:BE:EF:00:01 (Unknown)
+Not shown: 998 closed tcp ports (reset)
+PORT     STATE SERVICE VERSION
+23/tcp   open  telnet  Linux telnetd
+445/tcp  open  microsoft-ds?
+| smb-vuln-ms17-010:
+|   VULNERABLE: Remote Code Execution vulnerability in Microsoft SMBv1 servers (MS17-010)
+|   Extra information:
+|     IDs:  CVE:CVE-2017-0143
+|_  Risk factor: HIGH
+3389/tcp open  ms-wbt-server Microsoft Terminal Services
+OS details: Windows 7 Professional 7601 Service Pack 1
+
+Nmap done: 256 IP addresses (2 hosts up) scanned in 47.18 seconds

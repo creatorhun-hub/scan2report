@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}scan2report — Upload{% endblock %}
+
+{% block content %}
+<div class="upload-hero">
+  <h1>Security Scan Analyzer</h1>
+  <p>Upload an Nmap, Nikto, or SQLmap output file to get an instant analysis and professional report.</p>
+</div>
+
+<div class="upload-card">
+
+  {% if error %}
+  <div class="alert alert-error">⚠️ {{ error }}</div>
+  {% endif %}
+
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Upload Scan File</span>
+    </div>
+    <div class="card-body">
+      <form method="POST" enctype="multipart/form-data" id="upload-form">
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-icon">📂</div>
+          <h3>Drop your scan file here</h3>
+          <p>or click to browse</p>
+          <p id="file-name" class="file-selected" style="display:none"></p>
+          <input type="file" name="scanfile" id="file-input" accept=".txt,.log,.xml,.out,*">
+        </div>
+
+        <div style="margin-top: 16px; text-align: center;">
+          <button type="submit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 10px;">
+            Analyze Scan
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div style="text-align: center; margin-top: 8px;">
+    <p style="font-size: 12px; color: var(--muted); margin-bottom: 8px;">Supported scan tools</p>
+    <div class="supported-formats">
+      <span class="format-tag">🔍 Nmap</span>
+      <span class="format-tag">🌐 Nikto</span>
+      <span class="format-tag">💉 SQLmap</span>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const input    = document.getElementById('file-input');
+  const dropzone = document.getElementById('dropzone');
+  const label    = document.getElementById('file-name');
+
+  input.addEventListener('change', () => {
+    if (input.files.length > 0) {
+      label.textContent = '📄 ' + input.files[0].name;
+      label.style.display = 'block';
+    }
+  });
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('drag-over');
+    if (e.dataTransfer.files.length > 0) {
+      input.files = e.dataTransfer.files;
+      label.textContent = '📄 ' + e.dataTransfer.files[0].name;
+      label.style.display = 'block';
+    }
+  });
+</script>
+{% endblock %}
