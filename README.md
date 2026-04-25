@@ -28,6 +28,8 @@ Tools like Nmap, Nikto, and SQLmap produce messy outputs that are hard to interp
 
 ## 📸 Demo
 
+![Demo](screenshot.png)
+
 ### Raw Input (Example)
 
 ```
