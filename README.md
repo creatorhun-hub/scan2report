@@ -1,12 +1,12 @@
 # 🚀 scan2report
 
-> Turn raw security scan outputs into clean, professional AI-powered reports in seconds.
+Turn messy security scan outputs into clean, professional AI-powered reports in seconds.
 
----
+## 💥 Problem
+Tools like Nmap and Nikto generate raw output that is hard to understand.
 
-## 🔥 Why This Exists
-
-Tools like Nmap, Nikto, and SQLmap produce messy outputs that are hard to interpret.
+## ✅ Solution
+scan2report automatically analyzes and converts them into readable reports with risk levels and recommendations.
 
 **scan2report** solves that by:
 
